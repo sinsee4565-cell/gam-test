@@ -170,6 +170,17 @@ SOURCES: list[tuple[str, str, str]] = [
      "&minlongitude=124&maxlongitude=132&limit=20000"),
 ]
 
+# 스크립트로 받을 수 없어 브라우저에서 직접 받아 raw/ 에 넣는 것. 있는지만 확인한다.
+MANUAL: list[tuple[str, str, str]] = [
+    # (저장 파일명, 설명, 받는 페이지)
+    # 서울 데이터 허브는 페이지 세션이 있어야 파일 주소를 내준다 → "내려받기(CSV)" 버튼으로 받는다.
+    # 한 파일에 2017·2019·2021~2023(연 1회)과 2024 1분기~2026 1분기(분기별)가 다 들어 있다.
+    # 마지막 열 '분기'(qu)로 기간을 가른다. 인코딩은 UTF-8(BOM)
+    ("[서울교통공사] 지하철혼잡도 정보.csv",
+     "서울 지하철 1~8호선 30분 단위 평균 혼잡도 (서울교통공사 · 서울 데이터 허브 645)",
+     "https://data.seoul.go.kr/bsp/wgs/dataView/data300View/645.do"),
+]
+
 
 def get(url: str, dest: Path, tries: int = 4) -> int:
     """받는다. 잠깐의 실패면 기다렸다가 다시 시도한다.
@@ -217,6 +228,13 @@ def main() -> int:
             print(f"  실패    {name:<22} {e}")
             fail += 1
         time.sleep(0.4)          # 상대 서버에 예의를 지킨다
+
+    for name, desc, page in MANUAL:
+        dest = RAW / name
+        if dest.exists():
+            print(f"  직접    {name:<22} 있음 ({dest.stat().st_size/1024:,.0f}KB)")
+        else:
+            print(f"  없음    {name:<22} 직접 받아 raw/ 에 넣으세요: {page}")
 
     print()
     print(f"총 {len(SOURCES)}건 / 실패 {fail}건 · 저장 위치 {RAW}")

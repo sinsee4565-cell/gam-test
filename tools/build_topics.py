@@ -854,12 +854,106 @@ topic(
            f"들어가 교통범죄만 빼도 {theft_share:.1f}%가 {theft_share_nt:.1f}%로 "
            "바뀌므로, 다른 통계나 뉴스에서 본 숫자와 다를 수 있습니다.")
 
+# ── 14. 지하철 혼잡도 ────────────────────────────────────────────
+# 원본은 UTF-8(BOM). 첫 줄 한글 열이름, 둘째 줄 영문 열이름. 시간대 열은 5:30~ ~ 24:30~ 39개,
+# 마지막 열 '분기'는 2017~2023년 연 1회 자료면 '-'. 빈 칸은 빼고 평균한다.
+# 기간 = 최근 8분기(2024년 2분기~2026년 1분기, 2026년 2분기는 아직 없음), 요일 = 평일만.
+# 역 = 역 이름별 — 같은 이름의 호선·방향 줄을 모두 모아 평균한다.
+# 5번(덜 붐비는 역)도 하루 전체가 아니라 2번에서 나온 가장 혼잡한 시간대 기준이다.
+_m = list(csv.reader(io.open(RAW / "[서울교통공사] 지하철혼잡도 정보.csv",
+                             encoding="utf-8-sig")))
+M_SLOTS = _m[0][6:45]
+M_FROM, M_TO = ("2024", "2"), ("2026", "1")
+M = [r for r in _m[2:] if r[-1] != "-" and M_FROM <= (r[0], r[-1]) <= M_TO
+     and r[1] == "평일"]
+M_Q = sorted({(r[0], r[-1]) for r in M})
+assert len(M_Q) == 8, f"지하철: 분기가 8개가 아닙니다 {M_Q}"
+M_PERIOD = f"{M_FROM[0]}년 {M_FROM[1]}분기~{M_TO[0]}년 {M_TO[1]}분기 평일"
+
+
+def slot_name(label):
+    """'8:00~ (%)' → '8:00~8:30'. 24시 넘은 열은 0시로 바꿔 적는다 ('24:30~' → '0:30~1:00')."""
+    h, m = map(int, label.split("~")[0].split(":"))
+    a = h * 60 + m
+    return "~".join(f"{t // 60 % 24}:{t % 60:02d}" for t in (a, a + 30))
+
+
+m_cells = [float(v) for r in M for v in r[6:45] if v.strip()]
+m_blank = sum(1 for r in M for v in r[6:45] if not v.strip())
+# 한계 문장의 숫자도 원본에서 — 0 칸 수, 1호선 역 수
+m_zero = sum(1 for v in m_cells if v == 0)
+m_line1 = len({r[4] for r in M if r[2] == "1"})
+m_avg = mean(m_cells)
+m_slot = {slot_name(s): mean(float(r[6 + i]) for r in M if r[6 + i].strip())
+          for i, s in enumerate(M_SLOTS)}
+m_rank = sorted(m_slot, key=m_slot.get)
+m_peak, m_2nd, m_low = m_rank[-1], m_rank[-2], m_rank[0]
+_pi = [slot_name(s) for s in M_SLOTS].index(m_peak)
+_st = {}
+for r in M:
+    if r[6 + _pi].strip():
+        _st.setdefault(r[4], []).append(float(r[6 + _pi]))
+m_station = sorted(((mean(v), k) for k, v in _st.items()), reverse=True)
+top_opts = sorted(k for _, k in m_station[:4])           # 상위 4곳을 가나다순으로
+low_opts = sorted(k for _, k in m_station[-4:])          # 하위 4곳을 가나다순으로
+
+topic(
+    "subway-crowd", "🚇", "지하철은 언제, 어디가 붐비나",
+    f"{M_PERIOD}, 서울 지하철 1~8호선 30분 단위 혼잡도",
+    "서울교통공사 지하철혼잡도 정보 (서울 데이터 허브)",
+    "https://data.seoul.go.kr/bsp/wgs/dataView/data300View/645.do",
+    [
+        slider("m1", "최근 2년, 평일 서울 지하철의 평균 혼잡도는 몇 %일까요?",
+               m_avg, "%", 0, 100, 1,
+               f"{M_PERIOD} 역·방향·30분 시간대별 혼잡도 {len(m_cells):,}칸"
+               f"(빈 칸 {m_blank:,}개 제외)을 모두 평균하면 {m_avg:.1f}%",
+               "만원 열차의 기억이 평균을 끌어올립니다. 새벽·밤·한낮과 한산한 "
+               "구간까지 합치면 좌석이 다 찬 정도(34%) 언저리입니다."),
+        choice("m2", "평일 서울 지하철이 가장 혼잡한 30분은 언제일까요?",
+               ["7:30~8:00", "8:00~8:30", "17:30~18:00", "18:00~18:30"], m_peak,
+               f"{M_PERIOD} 시간대별로 모든 역·방향을 평균하면 1위 {m_peak} "
+               f"{m_slot[m_peak]:.1f}% · 2위 {m_2nd} {m_slot[m_2nd]:.1f}%",
+               "퇴근길이 더 지친다고 느끼지만, 출근길은 짧은 시간에 몰려서 "
+               "30분 단위로는 두 시간대가 거의 같습니다."),
+        choice("m3", f"평일 {m_peak}, 가장 혼잡한 역은 어디일까요?",
+               top_opts, m_station[0][1],
+               f"{M_PERIOD} {m_peak} 혼잡도를 역 이름별로 모든 호선·방향을 "
+               f"평균하면 " + " · ".join(f"{k} {v:.1f}%" for v, k in m_station[:4]),
+               "환승역이나 번화가가 먼저 떠오르지만, 열차가 이미 꽉 찬 채로 "
+               "도심 쪽으로 들어가는 길목의 역이 위로 올라옵니다."),
+        choice("m4", "평일 서울 지하철이 가장 한산한 30분은 언제일까요?",
+               ["5:30~6:00", "11:30~12:00", "23:30~0:00", "0:30~1:00"], m_low,
+               f"{M_PERIOD} 시간대별로 모든 역·방향을 평균하면 가장 낮은 "
+               f"{m_low} {m_slot[m_low]:.1f}% · 첫차 무렵 5:30~6:00 "
+               f"{m_slot['5:30~6:00']:.1f}% · 한낮 11:30~12:00 "
+               f"{m_slot['11:30~12:00']:.1f}%",
+               "첫차가 가장 비었을 것 같지만, 새벽 출근하는 사람이 생각보다 "
+               "많습니다."),
+        choice("m5", f"평일 {m_peak}에도 가장 한산한 역은 어디일까요?",
+               low_opts, m_station[-1][1],
+               f"{M_PERIOD} {m_peak} 혼잡도를 역 이름별로 모든 호선·방향을 "
+               f"평균하면 낮은 순으로 "
+               + " · ".join(f"{k} {v:.1f}%" for v, k in m_station[::-1][:4])
+               + f" ({len(m_station)}개 역 중)",
+               "가장 붐비는 시간에도 종점 근처는 열차가 비어서 출발합니다. "
+               "혼잡은 노선의 어디에 있느냐가 만듭니다."),
+    ],
+    caveat="이 숫자는 열차 안 사람을 센 것이 아니라 교통카드 승하차 기록으로 탑승 인원을 "
+           "추정해 정원 대비 비율(좌석이 다 차면 34%)로 바꾼 뒤 30분 동안 지난 열차를 "
+           "평균한 값이고, 각 분기 전체가 아니라 날짜가 밝혀지지 않은 특정 기간만 "
+           f"쓴 데다 {M_PERIOD}만 셌고(이 파일엔 2026년 2분기가 없지만 공공데이터포털엔 "
+           "3분기 자료가 이미 있음), 같은 이름의 역은 호선·방향을 합쳐 평균했으며 "
+           f"빈 칸 {m_blank:,}개는 빼고 종점에서 들어오는 방향처럼 0으로 적힌 칸 "
+           f"{m_zero:,}개는 그대로 넣어 평균이 낮아지고, 1호선은 서울교통공사 구간인 "
+           f"서울역~청량리 {m_line1}개 역뿐이므로, 한 열차가 가장 붐빈 순간의 수치나 "
+           "서울교통공사 밖 구간까지 넣은 1호선 수치, 최신 분기 자료와 다를 수 있습니다.")
+
 
 # ════════════════════════════════════════════════════════════════
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    # 내 주제를 목록 맨 위에 띄운다 — 제천, 절도 순 (나머지는 만든 순서 그대로)
-    MINE = ["jecheon-winter", "theft-2025"]
+    # 내 주제를 목록 맨 위에 띄운다 — 제천, 절도, 지하철 순 (나머지는 만든 순서 그대로)
+    MINE = ["jecheon-winter", "theft-2025", "subway-crowd"]
     TOPICS.sort(key=lambda t: MINE.index(t["id"]) if t["id"] in MINE else len(MINE))
     index = []
     for t in TOPICS:
