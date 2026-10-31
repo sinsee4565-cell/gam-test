@@ -1,17 +1,20 @@
 /* 감 테스트 — 폰 세로 화면 기준.
    큰 화면에서는 가운데 한 칸으로만 넓어집니다. */
 
+/* 색은 첫 화면(시안2)의 크림 · 테라코타를 모든 화면이 함께 쓴다.
+   맞음 · 틀림 · 주의는 크림 바탕에서 읽히도록 진하게 잡았다. */
 :root {
-  --bg: #0f1020;
-  --bg2: #191b35;
-  --card: #21243f;
-  --line: #2f3358;
-  --ink: #f2f3fb;
-  --muted: #9aa0c6;
-  --brand: #7c8cff;
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --miss: #fb7185;
+  --bg: #fdf8f1;
+  --card: #fffdf9;
+  --line: #efe3d3;
+  --ink: #2a1f1a;
+  --muted: #85766b;
+  --brand: #c95f3f;
+  --peach: #fbe9de;
+  --ok: #257552;
+  --ok-soft: rgba(37,117,82,.14);
+  --warn: #95600f;
+  --miss: #b8475a;
   --radius: 16px;
 }
 
@@ -23,7 +26,7 @@
 
 html, body {
   margin: 0;
-  background: radial-gradient(900px 600px at 50% -10%, var(--bg2), var(--bg));
+  background: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
                Pretendard, "Malgun Gothic", sans-serif;
@@ -66,7 +69,7 @@ button {
   font: inherit; font-weight: 700; border: 0; border-radius: 14px;
   width: 100%; padding: 17px; cursor: pointer;
 }
-.primary { background: var(--brand); color: #0e1030; }
+.primary { background: var(--brand); color: #fff; }
 .primary:disabled { background: var(--line); color: var(--muted); cursor: default; }
 .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
 .actions { display: grid; gap: 10px; margin-top: 26px; }
@@ -87,7 +90,7 @@ button {
   transition: transform .06s ease, border-color .15s ease;
 }
 .choice:active { transform: scale(.985); }
-.choice[aria-pressed="true"] { border-color: var(--brand); background: #2a2f5c; }
+.choice[aria-pressed="true"] { border-color: var(--brand); background: var(--peach); }
 
 /* 슬라이더 */
 .slider-out {
@@ -131,7 +134,7 @@ input[type=range]::-moz-range-thumb {
 
 /* 결과 — 촌평 */
 .ai {
-  background: linear-gradient(135deg, #2a2f5c, #21243f);
+  background: var(--peach);
   border: 1px solid var(--line); border-radius: var(--radius);
   padding: 16px 17px; font-size: 14.5px; margin-bottom: 16px;
 }
@@ -171,7 +174,7 @@ input[type=range]::-moz-range-thumb {
 }
 .pill.real { border-color: var(--ok); color: var(--ok); font-weight: 700; }
 .pill.mine { border-color: var(--miss); color: var(--miss); }
-.pill.both { border-color: var(--ok); background: rgba(52,211,153,.14); color: var(--ok); font-weight: 700; }
+.pill.both { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 700; }
 
 /* 슬라이더 결과 — 손잡이가 정답으로 움직입니다 */
 .track { position: relative; height: 34px; margin: 2px 0 12px; }
@@ -185,7 +188,7 @@ input[type=range]::-moz-range-thumb {
 }
 .track .ghost { background: var(--line); border: 2px solid var(--muted); }
 .track .live {
-  background: var(--ok); box-shadow: 0 0 0 4px rgba(52,211,153,.18);
+  background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft);
   transition: left 1s cubic-bezier(.22,1,.36,1);
 }
 
@@ -239,21 +242,9 @@ details[open] summary::after { content: " ▴"; }
 @media (min-width: 420px) { .grid { gap: 12px; } }
 
 /* ── 첫 화면 — 시안2의 모습 ───────────────────────
-   색 변수를 #view-home 안에서만 다시 정해서 문항 · 결과 화면은 그대로 둔다.
-   이 블록만 지우면 원래 첫 화면으로 돌아간다. */
-html:has(#view-home:not([hidden])),
-html:has(#view-home:not([hidden])) body { background: #fdf8f1; }
-
-#view-home {
-  --card: #fffdf9;
-  --line: #efe3d3;
-  --ink: #2a1f1a;
-  --muted: #85766b;
-  --brand: #c95f3f;
-  --peach: #fbe9de;
-  --ok: #c95f3f;
-  color: var(--ink);
-}
+   색은 :root 에서 모든 화면이 함께 쓴다. 여기는 첫 화면의 배치만 정한다.
+   푼 주제의 점수만 초록이 아니라 브랜드색으로 보인다. */
+#view-home { --ok: var(--brand); }
 
 #view-home .hero { padding: 28px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 22px; }
 #view-home .badge-day {

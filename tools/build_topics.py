@@ -737,7 +737,7 @@ j_jan_lo = mean(x["lo"] for x in J if x["d"].month == 1)
 j_coldest = min(J, key=lambda x: x["lo"])
 
 topic(
-    "jecheon-winter", "⛄", "제천의 겨울은 얼마나 추운가",
+    "jecheon-winter", "⛄", "제천의 겨울 얼마나 추울까?",
     "1980년부터 2025년까지, 제천의 매일 기온과 눈",
     "Open-Meteo Archive (ERA5 재분석)", "https://open-meteo.com/",
     [
@@ -814,7 +814,7 @@ for i in C_DOM:
 top_sido = theft_sido.most_common(1)[0]
 
 topic(
-    "theft-2025", "👜", "절도는 어디서 많이 일어나나",
+    "theft-2025", "👜", "한국의 절도 범죄는 어디서 많이 일어날까?",
     "2025년, 전국 시·군·구별 절도 발생 건수",
     "경찰청 범죄 발생 지역별 통계 (공공데이터포털)",
     "https://www.data.go.kr/data/3074462/fileData.do",
@@ -898,7 +898,7 @@ top_opts = sorted(k for _, k in m_station[:4])           # 상위 4곳을 가나
 low_opts = sorted(k for _, k in m_station[-4:])          # 하위 4곳을 가나다순으로
 
 topic(
-    "subway-crowd", "🚇", "지하철은 언제, 어디가 붐비나",
+    "subway-crowd", "🚇", "지하철 혼잡이 가장 큰 시간과 역은?",
     f"{M_PERIOD}, 서울 지하철 1~8호선 30분 단위 혼잡도",
     "서울교통공사 지하철혼잡도 정보 (서울 데이터 허브)",
     "https://data.seoul.go.kr/bsp/wgs/dataView/data300View/645.do",
