@@ -112,6 +112,50 @@ SOURCES: list[tuple[str, str, str]] = [
           ("singapore", "싱가포르", 1.3521, 103.8198),
       )],
 
+    # 고향의 겨울 — 영하 일수는 여기 없다. 일 최저기온을 그대로 받아 두고 나중에 센다
+    *[(f"winter_{rid}.json", f"{rn} 일 최저기온 1980~2025 (Open-Meteo Archive · ERA5 고정)",
+       "https://archive-api.open-meteo.com/v1/archive"
+       f"?latitude={lat}&longitude={lon}"
+       "&start_date=1980-01-01&end_date=2025-12-31"
+       "&daily=temperature_2m_min"
+       "&timezone=Asia%2FSeoul" + ERA5)
+      for rid, rn, lat, lon in (          # 17개 시·도의 도청·시청 소재지
+          ("seoul", "서울", 37.5665, 126.9780),
+          ("busan", "부산", 35.1796, 129.0756),
+          ("daegu", "대구", 35.8714, 128.6014),
+          ("incheon", "인천", 37.4563, 126.7052),
+          ("gwangju", "광주", 35.1595, 126.8526),
+          ("daejeon", "대전", 36.3504, 127.3845),
+          ("ulsan", "울산", 35.5384, 129.3114),
+          ("sejong", "세종", 36.4800, 127.2890),
+          ("suwon", "경기 수원", 37.2636, 127.0286),
+          ("chuncheon", "강원 춘천", 37.8813, 127.7298),
+          ("cheongju", "충북 청주", 36.6424, 127.4890),
+          ("hongseong", "충남 홍성", 36.6013, 126.6608),
+          ("jeonju", "전북 전주", 35.8242, 127.1480),
+          ("muan", "전남 무안", 34.9905, 126.4817),
+          ("andong", "경북 안동", 36.5684, 128.7294),
+          ("changwon", "경남 창원", 35.2280, 128.6811),
+          ("jeju", "제주", 33.4996, 126.5312),
+      )],
+
+    # 고향 제천 — 다섯 문항(영하·눈·평균기온·평년값·극값)을 이 한 파일에서 센다
+    ("jecheon_winter.json",
+     "제천 일별 최저·최고·평균기온·강설량 1980~2025 (Open-Meteo Archive · ERA5 고정)",
+     "https://archive-api.open-meteo.com/v1/archive"
+     "?latitude=37.1326&longitude=128.1910"
+     "&start_date=1980-01-01&end_date=2025-12-31"
+     "&daily=temperature_2m_min,temperature_2m_max,temperature_2m_mean,snowfall_sum"
+     "&timezone=Asia%2FSeoul" + ERA5),
+
+    # 절도 — 공공데이터포털 파일데이터(publicDataPk=3074462). 로그인 없이 받아진다.
+    # 파일은 해마다 새것으로 바뀌고 그때 atchFileId 도 바뀐다 (다음 등록 예정 2027-10-31).
+    # 인코딩은 CP949 그대로 둔다
+    ("crime_region_2025.csv",
+     "범죄 발생 지역별 통계 2025 — 범죄 유형 × 시·군·구 (경찰청 · 공공데이터포털)",
+     "https://www.data.go.kr/cmm/cmm/fileDownload.do"
+     "?atchFileId=FILE_000000007729840&fileDetailSn=1"),
+
     ("quakes.geojson",
      "규모 5.5 이상 지진 2000~2024 (USGS) — 2만건 상한에 걸리지 않는 기준",
      "https://earthquake.usgs.gov/fdsnws/event/1/query"

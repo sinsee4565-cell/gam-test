@@ -160,11 +160,11 @@ function renderQ() {
     s.min = q.min; s.max = q.max; s.step = q.step;
     // 기본값을 한가운데에서 한 칸 비켜 둔다 — 가운데면 생각 없이 맞는다
     s.value = Math.round(((q.min + q.max) / 2 + q.step) / q.step) * q.step;
-    $("slider-min").textContent = `${q.min}${q.unit}`;
-    $("slider-max").textContent = `${q.max}${q.unit}`;
+    $("slider-min").textContent = `${fmt(q.min)}${q.unit}`;
+    $("slider-max").textContent = `${fmt(q.max)}${q.unit}`;
     const paint = () => {
       answers[idx] = Number(s.value);
-      $("slider-out").textContent = `${s.value}${q.unit}`;
+      $("slider-out").textContent = `${fmt(s.value)}${q.unit}`;
     };
     s.oninput = paint;
     paint();
@@ -179,6 +179,11 @@ function next() {
 }
 
 /* ── 결과 ────────────────────────────────────────── */
+// 화면에 찍는 숫자만 천 단위 쉼표를 붙인다 (168982 → 168,982). 채점은 숫자 그대로
+function fmt(v) {
+  return Number(v).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
+}
+
 function pos(q, v) {
   return Math.max(0, Math.min(100, ((v - q.min) / (q.max - q.min)) * 100));
 }
@@ -240,7 +245,7 @@ function sliderBody(q, mine) {
       <div class="row">
         <span class="k">${k}</span>
         <span class="bar ${cls}"><i data-w="${Math.abs(Number(v)) / max * 100}"></i></span>
-        <span class="v">${v}${q.unit}</span>
+        <span class="v">${fmt(v)}${q.unit}</span>
       </div>`).join("");
   return `
     <div class="track">

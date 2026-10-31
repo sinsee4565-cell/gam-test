@@ -714,13 +714,158 @@ topic(
            f"{SNOW_CM:g}cm 이상만 세어 0.1cm 이상까지 세면 한 해 {trace_avg:.1f}일로 "
            "늘어나므로, 관측소 기록이나 뉴스에서 본 숫자와 다를 수 있습니다.")
 
+# ── 12. 제천의 겨울 ──────────────────────────────────────────────
+# 영하 = 일최저기온 0도 미만, 눈 온 날 = 하루 강설량 1cm 이상 (서울 주제와 같은 기준).
+# 11~2월은 해를 넘기므로 11월이 속한 해로 겨울을 묶는다 — 1980/81 ~ 2024/25 의 45번.
+# 1월 최저기온은 30년 평년이 아니라 받은 기간 전체(1980~2025)의 평균이다.
+j_raw = load_json("jecheon_winter.json")
+j = j_raw["daily"]
+J = [{"d": dt.date.fromisoformat(t), "lo": lo, "mean": m, "snow": s}
+     for t, lo, m, s in zip(j["time"], j["temperature_2m_min"],
+                            j["temperature_2m_mean"], j["snowfall_sum"])]
+J_YEARS = range(1980, 2026)
+j_below0 = {y: sum(1 for x in J if x["d"].year == y and x["lo"] < 0) for y in J_YEARS}
+j_below0_avg = mean(j_below0.values())
+j_snow = {y: sum(1 for x in J if x["d"].year == y and x["snow"] >= SNOW_CM)
+          for y in J_YEARS}
+j_snow_avg = mean(j_snow.values())
+j_winter = [x["mean"] for x in J
+            if (x["d"].month >= 11 and x["d"].year <= 2024)
+            or (x["d"].month <= 2 and x["d"].year >= 1981)]
+j_winter_avg = mean(j_winter)
+j_jan_lo = mean(x["lo"] for x in J if x["d"].month == 1)
+j_coldest = min(J, key=lambda x: x["lo"])
+
+topic(
+    "jecheon-winter", "⛄", "제천의 겨울은 얼마나 추운가",
+    "1980년부터 2025년까지, 제천의 매일 기온과 눈",
+    "Open-Meteo Archive (ERA5 재분석)", "https://open-meteo.com/",
+    [
+        slider("j1", "1980~2025년, 제천에서 기온이 영하로 내려간 날은 한 해 평균 며칠일까요?",
+               j_below0_avg, "일", 20, 200, 5,
+               f"1980~2025년 일최저기온 0도 미만인 날을 해마다 세어 평균하면 "
+               f"{j_below0_avg:.1f}일 (최소 {min(j_below0.values())}일 · "
+               f"최대 {max(j_below0.values())}일)",
+               "한겨울 몇 주만 떠올리기 쉽지만, 늦가을과 이른 봄의 새벽도 "
+               "영하로 내려갑니다."),
+        slider("j2", "1980~2025년, 제천에서 한 해에 눈이 온 날은 평균 며칠일까요?",
+               j_snow_avg, "일", 0, 40, 1,
+               f"1980~2025년 하루 강설량 {SNOW_CM:g}cm 이상인 날을 해마다 세어 "
+               f"평균하면 {j_snow_avg:.1f}일 (최소 {min(j_snow.values())}일 · "
+               f"최대 {max(j_snow.values())}일)",
+               "눈 덮인 풍경은 오래 남지만, 쌓일 만큼 온 날은 세어 보면 "
+               "많지 않습니다."),
+        slider("j3", "1980~2025년, 제천의 11월~2월 평균 기온은 몇 도일까요?",
+               j_winter_avg, "도", -10, 10, 0.5,
+               f"1980/81~2024/25년 겨울 45번의 11~2월 날짜 {len(j_winter):,}일의 "
+               f"일평균기온을 평균하면 {j_winter_avg:.2f}도",
+               "가장 추운 아침이 기억을 차지해서, 낮까지 합친 평균은 생각보다 "
+               "덜 춥게 나옵니다."),
+        slider("j4", "1980~2025년, 제천의 1월 일 최저기온은 평균 몇 도일까요?",
+               j_jan_lo, "도", -20, 5, 0.5,
+               f"1980~2025년 1월 {sum(1 for x in J if x['d'].month == 1):,}일의 "
+               f"일최저기온을 평균하면 {j_jan_lo:.2f}도 (30년 평년이 아니라 "
+               f"받은 기간 전체의 평균)",
+               "1월 아침의 기온은 '영하 몇 도'로 기억되지만, 평균을 내 보면 "
+               "숫자가 달라집니다."),
+        slider("j5", "1980~2025년, 제천에서 가장 낮았던 기온은 몇 도일까요?",
+               j_coldest["lo"], "도", -35, -5, 1,
+               f"1980~2025년 일최저기온의 최솟값은 "
+               f"{j_coldest['d']:%Y년 %m월 %d일} {j_coldest['lo']:.1f}도",
+               "극값은 관측소 한 곳의 기록으로 기억되지만, 넓은 격자를 평균한 "
+               "값은 그보다 덜 극단적으로 나옵니다."),
+    ],
+    caveat="이 숫자는 제천 관측소가 아니라 시내에서 떨어진 약 25km 격자 한 칸"
+           f"(북위 {j_raw['latitude']}° · 동경 {j_raw['longitude']}° · "
+           f"고도 {j_raw['elevation']:g}m)을 모델로 추정한 값이고, 일최저기온은 "
+           "정시 24번 중 가장 낮은 값이라 그 사이에 더 내려간 추위가 빠지며, "
+           "강설량은 쌓인 눈을 잰 깊이가 아니라 모델이 낸 물의 양을 눈으로 바꾼 "
+           "것이고, 1월 최저기온은 30년 평년이 아니라 1980~2025년 전체의 평균이므로, "
+           "기상청 관측 기록이나 뉴스에서 본 숫자와 다를 수 있습니다.")
+
+# ── 13. 절도 ─────────────────────────────────────────────────────
+# 원본은 CP949. 열은 시·군·구 229개 + '외국 ○○' 17개, 줄은 범죄 유형 38개(합계 줄 없음).
+# 국내 = '외국'으로 시작하지 않는 열. 시·군·구는 원본 열 그대로 비교한다 —
+# 특·광역시는 구 단위, 그 밖은 일반구를 합친 시 단위라 큰 시가 유리하다.
+_c = list(csv.reader(io.StringIO((RAW / "crime_region_2025.csv").read_bytes()
+                                 .decode("cp949"))))
+C_HEAD, C_ROWS = _c[0], _c[1:]
+C_DOM = [i for i in range(2, len(C_HEAD)) if not C_HEAD[i].startswith("외국")]
+C_FRN = [i for i in range(2, len(C_HEAD)) if C_HEAD[i].startswith("외국")]
+
+
+def num(x):
+    return int(x.replace(",", "") or 0)
+
+
+theft = next(r for r in C_ROWS if r[0] == "절도범죄")
+theft_dom = sum(num(theft[i]) for i in C_DOM)
+crime_dom = sum(num(r[i]) for r in C_ROWS for i in C_DOM)
+theft_share = theft_dom / crime_dom * 100
+# 한계 문장의 숫자도 원본에서 — 분모에서 교통범죄를 빼면 비율이 얼마가 되는지
+traffic_dom = sum(num(r[i]) for r in C_ROWS if r[0] == "교통범죄" for i in C_DOM)
+theft_share_nt = theft_dom / (crime_dom - traffic_dom) * 100
+theft_sgg = sorted(((num(theft[i]), C_HEAD[i]) for i in C_DOM), reverse=True)
+sgg_opts = sorted(name for _, name in theft_sgg[:4])     # 상위 4곳을 가나다순으로
+SIDO_KO = {"서울": "서울", "경기도": "경기", "부산": "부산", "인천": "인천"}
+theft_sido = Counter()
+for i in C_DOM:
+    theft_sido[C_HEAD[i].split(" ")[0]] += num(theft[i])
+top_sido = theft_sido.most_common(1)[0]
+
+topic(
+    "theft-2025", "👜", "절도는 어디서 많이 일어나나",
+    "2025년, 전국 시·군·구별 절도 발생 건수",
+    "경찰청 범죄 발생 지역별 통계 (공공데이터포털)",
+    "https://www.data.go.kr/data/3074462/fileData.do",
+    [
+        slider("t1", "2025년 국내에서 발생한 절도는 몇 건일까요?",
+               theft_dom, "건", 0, 400000, 10000,
+               f"2025년 '절도범죄' 줄에서 국외 {len(C_FRN)}개 열을 빼고 시·군·구 {len(C_DOM)}곳을 "
+               f"더하면 {theft_dom:,}건",
+               "뉴스에 나오는 큰 절도 몇 건이 인상을 만듭니다. 하루로 나누면 "
+               f"약 {theft_dom / 365:,.0f}건입니다."),
+        choice("t2", "2025년 절도가 가장 많이 발생한 시·군·구는?",
+               sgg_opts, theft_sgg[0][1],
+               f"원본 시·군·구 열 {len(C_DOM)}곳을 그대로 비교하면 "
+               + " · ".join(f"{n} {v:,}건" for v, n in theft_sgg[:4])
+               + " (특·광역시는 구 단위, 그 밖은 시 단위)",
+               "번화가가 있는 구를 떠올리기 쉽지만, 원본의 단위가 달라 "
+               "구를 합친 큰 시가 위로 올라옵니다."),
+        slider("t3", "2025년 국내 범죄 중 절도는 몇 %일까요?",
+               theft_share, "%", 0, 50, 1,
+               f"국내 절도 {theft_dom:,}건 ÷ 국내 범죄 {len(C_ROWS)}개 유형 합계 "
+               f"{crime_dom:,}건 = {theft_share:.1f}%",
+               "'범죄' 하면 도둑부터 떠올리지만, 절도가 전체에서 차지하는 몫은 "
+               "생각과 다를 수 있습니다."),
+        choice("t4", "2025년 절도가 가장 많이 발생한 시·도는?",
+               ["서울", "경기", "부산", "인천"], SIDO_KO.get(top_sido[0], top_sido[0]),
+               "시·군·구 열을 시·도별로 더하면 "
+               + " · ".join(f"{s} {v:,}건" for s, v in theft_sido.most_common(4)),
+               "서울이 가장 붐비는 곳이라는 인상이 강하지만, 사람 수가 더 많은 "
+               "곳은 따로 있습니다."),
+    ],
+    caveat="이 숫자는 경찰에 접수된 사건만 사건 발생일이 아니라 통계원표 작성일 "
+           "기준으로 센 것이라 연말 사건이 해를 넘나들 수 있고, 국외 "
+           f"{len(C_FRN)}개 열은 빼고 셌으며, 시·군·구는 특·광역시는 구 단위인데 "
+           f"수원·청주·창원처럼 일반구가 있는 시는 구를 합친 한 덩어리라 순위가 "
+           f"그 단위에 따라 달라지고(1·2위 차이 {theft_sgg[0][0] - theft_sgg[1][0]}건), "
+           f"절도 비율의 분모에는 교통범죄·기타범죄까지 {len(C_ROWS)}개 유형이 모두 "
+           f"들어가 교통범죄만 빼도 {theft_share:.1f}%가 {theft_share_nt:.1f}%로 "
+           "바뀌므로, 다른 통계나 뉴스에서 본 숫자와 다를 수 있습니다.")
+
 
 # ════════════════════════════════════════════════════════════════
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    # 내 주제를 목록 맨 위에 띄운다 — 제천, 절도 순 (나머지는 만든 순서 그대로)
+    MINE = ["jecheon-winter", "theft-2025"]
+    TOPICS.sort(key=lambda t: MINE.index(t["id"]) if t["id"] in MINE else len(MINE))
     index = []
     for t in TOPICS:
-        assert len(t["questions"]) == 5, f"{t['id']}: 문항이 5개가 아닙니다"
+        # 절도 주제만 4문항 (국외 절도 문항을 뺐다). 나머지는 5문항 그대로 지킨다
+        n_q = 4 if t["id"] == "theft-2025" else 5
+        assert len(t["questions"]) == n_q, f"{t['id']}: 문항이 {n_q}개가 아닙니다"
         pack = {k: t[k] for k in ("id", "emoji", "title", "blurb",
                                   "source", "source_url", "caveat")}
         pack["questions"] = t["questions"]
