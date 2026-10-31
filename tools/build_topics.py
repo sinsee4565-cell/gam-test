@@ -954,8 +954,8 @@ topic(
 # ════════════════════════════════════════════════════════════════
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    # 내 주제를 목록 맨 위에 띄운다 — 제천, 절도, 지하철 순 (나머지는 만든 순서 그대로)
-    MINE = ["jecheon-winter", "theft-2025", "subway-crowd"]
+    # 내 주제를 목록 맨 위에 띄운다 — 절도, 제천, 지하철 순 (나머지는 만든 순서 그대로)
+    MINE = ["theft-2025", "jecheon-winter", "subway-crowd"]
     TOPICS.sort(key=lambda t: MINE.index(t["id"]) if t["id"] in MINE else len(MINE))
     index = []
     for t in TOPICS:
